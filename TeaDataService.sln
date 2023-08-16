@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 25.0.1706.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeaDataService", "TeaDataService.csproj", "{0A73A9A5-2B8C-4727-B171-0B5021A1D49F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A73A9A5-2B8C-4727-B171-0B5021A1D49F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A73A9A5-2B8C-4727-B171-0B5021A1D49F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A73A9A5-2B8C-4727-B171-0B5021A1D49F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A73A9A5-2B8C-4727-B171-0B5021A1D49F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CC607AA8-6B0F-4270-A61B-C9573B007C2C}
+	EndGlobalSection
+EndGlobal
