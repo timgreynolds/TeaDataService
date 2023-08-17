@@ -39,7 +39,8 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// <exception cref="Exception"></exception>
         public async Task<T> AddAsync(object obj)
         {
-            HttpResponseMessage response = (await _client.PostAsJsonAsync("api/teas", (T)obj)).EnsureSuccessStatusCode();
+            HttpResponseMessage response = (await _client.PostAsJsonAsync("api/teas", (T)obj));
+            response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>() ?? (T)obj;
         }
 
@@ -73,7 +74,8 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         {
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "api/teas");
             request.Content = JsonContent.Create((T)obj, MediaTypeHeaderValue.Parse("application/json"));
-            HttpResponseMessage response = (await _client.SendAsync(request)).EnsureSuccessStatusCode();
+            HttpResponseMessage response = (await _client.SendAsync(request));
+            response.EnsureSuccessStatusCode();
             bool success = await response.Content.ReadFromJsonAsync<bool>();
             return success;
         }
