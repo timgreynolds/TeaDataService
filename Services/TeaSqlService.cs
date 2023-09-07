@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using com.mahonkin.tim.TeaDataService.DataModel;
 using SQLite;
@@ -11,16 +9,13 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
 {
     /// <summary>
     /// Implementation of <see cref="IDataService{T}">IDataService"</see> using
-    /// SQLLite and a database of teas.
+    /// SQLite and a database of teas.
     /// </summary>
-    public class TeaSqlService<T> : IDataService<T> where T : TeaModel
+    public class TeaSqlService : IDataService<TeaModel>
     {
         #region Private Fields
-        private static readonly string _appConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        private static readonly string _appName = Assembly.GetExecutingAssembly().GetName().Name ?? Assembly.GetExecutingAssembly().GetName().ToString();
-        private static readonly string _dbFileName = Path.Combine(_appConfigFolder, _appName, _appName + ".db3");
-        private static readonly SQLiteAsyncConnection _asyncConnection = new SQLiteAsyncConnection(_dbFileName, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex);
         private static bool _initialized;
+        private static SQLiteAsyncConnection _asyncConnection;
         #endregion Private Fields
 
         #region Public Methods
@@ -28,6 +23,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// Ensures that the database exists and contains at least one tea
         /// variety.
         /// </summary>
+        /// <param name="dbFile">The full path of the database file to be used/created.</param>
         /// <remarks>
         /// Creates the DB file in the platform-specific <see
         /// cref="Environment.SpecialFolder.LocalApplicationData">Local
@@ -35,27 +31,27 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// tea. If the DB file already exists and contains at least one entry
         /// this should be a no-op.
         /// </remarks>
-        public void Initialize()
+        /// <exception cref="SQLiteException" />
+        /// <exception cref="Exception" />
+        public async Task Initialize(string dbFile)
         {
             // The DbFile must be created, and populated with at least one initial tea variety.
             // The routines *should* all be non-destructive, relying on 'CreateIfNotExist' patterns, but I added some extra checks just to be sure.
             try
             {
-                Directory.CreateDirectory(_appConfigFolder);
-                Directory.CreateDirectory(Path.Combine(_appConfigFolder, _appName));
-                using (SQLiteConnection connection = new SQLiteConnection(_dbFileName, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex))
+                _asyncConnection = new SQLiteAsyncConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex);
+
+                TableMapping? mapping = _asyncConnection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
+                if (mapping is null)
                 {
-                    TableMapping? mapping = connection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
-                    if (mapping is null)
-                    {
-                        CreateTableResult createTableResult = connection.CreateTable<TeaModel>();
-                    }
-                    if (connection.Table<TeaModel>().Count() < 1)
-                    {
-                        connection.Insert(new TeaModel("Earl Grey"));
-                    }
-                    _initialized = true;
+                    CreateTableResult createTableResult = await _asyncConnection.CreateTableAsync<TeaModel>();
                 }
+                if (await _asyncConnection.Table<TeaModel>().CountAsync() < 1)
+                {
+                    await _asyncConnection.InsertAsync(new TeaModel("Earl Grey"));
+                }
+                _initialized = true;
+
             }
             catch (SQLiteException ex)
             {
@@ -73,17 +69,17 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <remarks>
         /// This wraps the async method in a continuation using ContinueWith.
         /// </remarks>
-        public T Add(object obj)
+        public TeaModel Add(TeaModel tea)
         {
             try
             {
-                AddAsync(obj).ContinueWith((t) => { obj = t.Result; })
+                AddAsync(tea).ContinueWith((t) => { tea = t.Result; })
                     .ConfigureAwait(false);
-                return (T)obj;
+                return tea;
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
-                throw new ApplicationException(exception.Message, exception);
+                throw new Exception(exception.Message, exception);
             }
         }
 
@@ -99,17 +95,12 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </returns>
         /// <exception cref="SQLiteException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<T> AddAsync(object obj)
+        public async Task<TeaModel> AddAsync(TeaModel tea)
         {
-            if (_initialized == false)
-            {
-                Initialize();
-            }
             try
             {
-                TeaModel tea = TeaModel.ValidateTea((TeaModel)obj);
                 await _asyncConnection.InsertAsync(tea).ConfigureAwait(false);
-                return (T)tea;
+                return tea;
             }
             catch (SQLiteException ex)
             {
@@ -127,11 +118,11 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <remarks>
         /// This wraps the async method in a continuation using ContinueWith.
         /// </remarks>
-        public T Update(object obj)
+        public TeaModel Update(TeaModel tea)
         {
-            UpdateAsync(obj).ContinueWith((t) => obj = t.Result)
+            UpdateAsync(tea).ContinueWith((t) => tea = t.Result)
                 .ConfigureAwait(false);
-            return (T)obj;
+            return tea;
         }
 
         /// <summary>
@@ -148,17 +139,13 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </returns>
         /// <exception cref="SQLiteException" />
         /// <exception cref="Exception" />
-        public async Task<T> UpdateAsync(object obj)
+        public async Task<TeaModel> UpdateAsync(TeaModel tea)
         {
-            if (_initialized == false)
-            {
-                Initialize();
-            }
             try
             {
-                TeaModel tea = TeaModel.ValidateTea((TeaModel)obj);
+                tea = TeaModel.ValidateTea(tea);
                 await _asyncConnection.UpdateAsync(tea).ConfigureAwait(false);
-                return (T)tea;
+                return tea;
             }
             catch (SQLiteException ex)
             {
@@ -176,10 +163,10 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <remarks>
         /// This wraps the async method in a continuation using ContinueWith.
         /// </remarks>
-        public bool Delete(object obj)
+        public bool Delete(TeaModel tea)
         {
             bool deleted = false;
-            DeleteAsync(obj).ContinueWith((t) => deleted = t.Result)
+            DeleteAsync(tea).ContinueWith((t) => deleted = t.Result)
                 .ConfigureAwait(false);
             return deleted;
         }
@@ -188,7 +175,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// Deletes the given tea from the database using its primary key in an
         /// asynchronous manner. The object is required to have a primary key.
         /// </summary>
-        /// <param name="obj">
+        /// <param name="tea">
         /// The <see cref="TeaModel">Tea</see> to be deleted.
         /// </param>
         /// <returns>
@@ -197,21 +184,17 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </returns>
         /// <exception cref="SQLiteException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> DeleteAsync(object obj)
+        public async Task<bool> DeleteAsync(TeaModel tea)
         {
-            if (_initialized == false)
-            {
-                Initialize();
-            }
             try
             {
                 List<TeaModel> teas = await _asyncConnection.Table<TeaModel>().ToListAsync().ConfigureAwait(false);
-                if(teas.Count <= 1)
+                if (teas.Count <= 1)
                 {
                     throw new ApplicationException("Cannot delete the only tea in the database.");
                 }
                 bool deleted = false;
-                TeaModel tea = TeaModel.ValidateTea((TeaModel)obj);
+                tea = TeaModel.ValidateTea(tea);
                 if (await _asyncConnection.DeleteAsync(tea).ConfigureAwait(false) == 1)
                 {
                     deleted = true;
@@ -234,9 +217,9 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <remarks>
         /// This wraps the async method in a continuation using ContinueWith.
         /// </remarks>
-        public List<T> Get()
+        public List<TeaModel> Get()
         {
-            List<T> teas = new List<T>();
+            List<TeaModel> teas = new List<TeaModel>();
             GetAsync().ContinueWith((t) => teas = t.Result)
                 .ConfigureAwait(false);
             return teas;
@@ -251,21 +234,11 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </returns>
         /// <exception cref="SQLiteException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<List<T>> GetAsync()
+        public async Task<List<TeaModel>> GetAsync()
         {
-            if (_initialized == false)
-            {
-                Initialize();
-            }
             try
             {
-                List<TeaModel> teas = await _asyncConnection.Table<TeaModel>().ToListAsync().ConfigureAwait(false);
-                List<T> returnList = new List<T>();
-                foreach (TeaModel tea in teas)
-                {
-                    returnList.Add((T)tea);
-                }
-                return returnList;
+                return await _asyncConnection.Table<TeaModel>().ToListAsync().ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {
@@ -283,11 +256,12 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <remarks>
         /// This wraps the async method in a continuation using ContinueWith.
         /// </remarks>
-        public T FindById(object id)
+        public TeaModel FindById(object id)
         {
-            FindByIdAsync(id).ContinueWith((t) => id = t.Result)
+            TeaModel? tea = null;
+            FindByIdAsync(id).ContinueWith((t) => tea = t.Result)
                 .ConfigureAwait(false);
-            return (T)id;
+            return tea;
         }
 
         /// <summary>
@@ -302,16 +276,11 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </returns>
         /// <exception cref="SQLiteException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<T> FindByIdAsync(object obj)
+        public async Task<TeaModel> FindByIdAsync(object obj)
         {
-            if (_initialized == false)
-            {
-                Initialize();
-            }
             try
             {
-                TeaModel tea = await _asyncConnection.FindAsync<TeaModel>(obj).ConfigureAwait(false);
-                return (T)tea;
+                return await _asyncConnection.FindAsync<TeaModel>(obj).ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {

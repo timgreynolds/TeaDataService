@@ -47,7 +47,6 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <br>If the user tries to set the steep time to a value of 30 minutes or longer an ArgumentException will be thrown.</br>
         /// </summary>
         [Required(ErrorMessage = "Tea must have a steep time."), MinLength(1, ErrorMessage = "Tea must have a steep time.")]
-        [DisplayFormat(DataFormatString = @"mm\:ss")]
         [Column("Steeptime"), NotNull]
         public TimeSpan SteepTime
         {
@@ -97,12 +96,9 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         public TeaModel(string name, string steepTime = "02:00", int brewTemp = 212)
         {
             TimeSpan time = TimeSpan.MaxValue;
-            if (TimeSpan.TryParseExact(steepTime, @"mm\:ss", null, out time) == false)
+            if (TimeSpan.TryParse(steepTime, out time) == false)
             {
-                if (TimeSpan.TryParse(steepTime, out time) == false)
-                {
-                    throw new ArgumentException($"Could not parse provided steep time {steepTime}", nameof(steepTime));
-                }
+                throw new ArgumentException($"Could not parse provided steep time {steepTime}", nameof(steepTime));
             }
             SteepTime = (time <= TimeSpan.FromMinutes(30)) ? time : throw new ArgumentException($"Steep times of greater than 30 minutes ({steepTime}) really don't make sense.", nameof(steepTime));
             Name = name;

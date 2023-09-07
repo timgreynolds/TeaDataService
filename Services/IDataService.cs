@@ -9,13 +9,17 @@ namespace com.mahonkin.tim.TeaDataService.Services
     /// object or model.
     /// </summary>
     /// <typeparamref name="T" />
-    public interface IDataService<T>
+    public interface IDataService<T> where T : class
     {
         /// <summary>
         /// Provide initial setup of the data provider. If you need to setup
         /// connections to a database, for example, do it here.
         /// </summary>
-        public void Initialize();
+        /// <param name="locator">
+        /// The location of the backing data store. This could be a file, connection
+        /// string, REST API endpoint, etc.
+        /// </param>
+        public Task Initialize(string locator);
 
         /// <summary>
         /// Retrieve the contents of the data provider.
@@ -70,7 +74,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// The tye T object that was added to the data provider, including its
         /// assigned unique identifier.
         /// </returns>
-        public T Add(object obj);
+        public T Add(T obj);
 
         /// <summary>
         /// Add a new type T object to the data provider in an asynchrous manner.
@@ -82,7 +86,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the add operation. The task result contains the
         /// result of the operation.
         /// </returns>
-        public Task<T> AddAsync(object obj);
+        public Task<T> AddAsync(T obj);
 
         /// <summary>
         /// Update an existing object in the data provider.
@@ -93,7 +97,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <returns>
         /// The type T object as updated.
         /// </returns>
-        public T Update(object obj);
+        public T Update(T obj);
 
         /// <summary>
         /// Update an existing object in the data provider in an asynchrous
@@ -106,7 +110,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the update operation. The task result contains
         /// the type T object as updated.
         /// </returns>
-        public Task<T> UpdateAsync(object obj);
+        public Task<T> UpdateAsync(T obj);
 
         /// <summary>
         /// Delete an existing object from the data provider.
@@ -117,7 +121,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <returns>
         /// True if the object was deleted false if not.
         /// </returns>
-        public bool Delete(object obj);
+        public bool Delete(T obj);
 
         /// <summary>
         /// Delete an existing object from the data provider in an asynchronous
@@ -130,6 +134,6 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the delete operation. The task result contais
         /// the result of the operation.
         /// </returns>
-        public Task<bool> DeleteAsync(object obj);
+        public Task<bool> DeleteAsync(T obj);
     }
 }
