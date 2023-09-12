@@ -5,24 +5,32 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using com.mahonkin.tim.TeaDataService.DataModel;
-using Microsoft.Extensions.Configuration;
+using com.mahonkin.tim.TeaDataService.Exceptions;
+using SQLite;
 
 namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
 {
     public class TeaRestService : IDataService<TeaModel>
     {
-        private static HttpClient _client = new HttpClient();
+        private static readonly HttpClient _client = new HttpClient();
 
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public TeaModel Add(TeaModel tea)
         {
-            AddAsync(tea).ContinueWith(t => tea = t.Result).ConfigureAwait(false);
-            return tea;
+            try
+            {
+                return AddAsync(tea).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -35,7 +43,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// A Task representing the add operation. The task result contains the
         /// tea as added to the database including its auto-assigned unique key.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
+        /// <exception cref="TeaHttpRequestException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<TeaModel> AddAsync(TeaModel tea)
         {
@@ -45,20 +53,26 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
                 return await response.Content.ReadFromJsonAsync<TeaModel>() ?? tea;
             }
             Console.WriteLine($"An error occurred: {response.StatusCode} - {response.ReasonPhrase}");
-            throw new HttpRequestException(response.ReasonPhrase, null, response.StatusCode);
+            throw new TeaHttpRequestException(response.ReasonPhrase, null, response.StatusCode);
         }
 
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public bool Delete(TeaModel tea)
         {
-            bool success = false;
-            DeleteAsync(tea).ContinueWith(t => success = t.Result).ConfigureAwait(false);
-            return success;
+            try
+            {
+                return DeleteAsync(tea).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -72,13 +86,13 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// A Task representing the delete operation. The task result contains
         /// true if the tea was deleted and false otherwise.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
+        /// <exception cref="TeaHttpRequestException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<bool> DeleteAsync(TeaModel tea)
         {
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "api/teas");
-            request.Content = JsonContent.Create((TeaModel)tea, MediaTypeHeaderValue.Parse("application/json"));
-            HttpResponseMessage response = (await _client.SendAsync(request));
+            request.Content = JsonContent.Create(tea, MediaTypeHeaderValue.Parse("application/json"));
+            HttpResponseMessage response = await _client.SendAsync(request);
             response.EnsureSuccessStatusCode();
             bool success = await response.Content.ReadFromJsonAsync<bool>();
             return success;
@@ -87,15 +101,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public TeaModel FindById(object id)
         {
-            TeaModel tea = new TeaModel();
-            FindByIdAsync(id).ContinueWith(t => tea = t.Result)
-                .ConfigureAwait(false);
-            return tea;
+            try
+            {
+                return FindByIdAsync(id).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -108,7 +127,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// A Task representing the retrieve operation. The task result contains
         /// the tea retrieved or null if not found.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
+        /// <exception cref="TeaHttpRequestException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<TeaModel> FindByIdAsync(object id)
         {
@@ -118,14 +137,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public List<TeaModel> Get()
         {
-            List<TeaModel> teas = new List<TeaModel>();
-            GetAsync().ContinueWith(t => teas = t.Result).ConfigureAwait(false);
-            return teas;
+            try
+            {
+                return GetAsync().Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -135,7 +160,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// A Task representing the get operation. The task result contains a
         /// List of all the teas in the database.
         /// </returns>
-        /// <exception cref="HttpRequestException" />
+        /// <exception cref="TeaHttpRequestException" />
         /// <exception cref="Exception" />
         public async Task<List<TeaModel>> GetAsync()
         {
@@ -151,13 +176,13 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// </param>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="UriFormatException" />
-        public async Task Initialize(string baseAddress)
+        public void Initialize(string baseAddress)
         {
             if (_client.BaseAddress is null)
             {
                 try
                 {
-                    _client.BaseAddress = await Task.Run(() => new Uri(baseAddress));
+                    _client.BaseAddress = new Uri(baseAddress);
                 }
                 catch (ArgumentNullException ex)
                 {
@@ -177,14 +202,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public TeaModel Update(TeaModel tea)
         {
-            UpdateAsync(tea).ContinueWith(t => tea = t.Result)
-                .ConfigureAwait(false);
-            return (TeaModel)tea;
+            try
+            {
+                return UpdateAsync(tea).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -199,7 +230,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// A Task representing the update operation. The task result contains
         /// the tea as it was updated.
         /// </returns>
-        /// <exception cref="HttpRequestException" />
+        /// <exception cref="TeaHttpRequestException" />
         /// <exception cref="Exception" />
         public async Task<TeaModel> UpdateAsync(TeaModel tea)
         {
@@ -207,7 +238,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
                 await _client.PutAsJsonAsync("api/teas", (TeaModel)tea)
                 .ConfigureAwait(false)
                 ).EnsureSuccessStatusCode();
-            return (await responseMessage.Content.ReadFromJsonAsync<TeaModel>().ConfigureAwait(false)) ?? (TeaModel)tea;
+            return (await responseMessage.Content.ReadFromJsonAsync<TeaModel>().ConfigureAwait(false)) ?? tea;
         }
     }
 }

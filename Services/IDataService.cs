@@ -19,7 +19,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// The location of the backing data store. This could be a file, connection
         /// string, REST API endpoint, etc.
         /// </param>
-        public Task Initialize(string locator);
+        public void Initialize(string locator);
 
         /// <summary>
         /// Retrieve the contents of the data provider.
@@ -48,7 +48,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <returns>
         /// The type T object represented by <paramref name="id">id</paramref>
         /// </returns>
-        public T FindById(object id);
+        public T? FindById(object id);
 
         /// <summary>
         /// Retrieve a specific object from the data provider by its unique

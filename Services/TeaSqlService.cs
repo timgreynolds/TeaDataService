@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using com.mahonkin.tim.TeaDataService.DataModel;
+using com.mahonkin.tim.TeaDataService.Exceptions;
 using SQLite;
 
 namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
@@ -14,8 +15,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
     public class TeaSqlService : IDataService<TeaModel>
     {
         #region Private Fields
-        private static bool _initialized;
-        private static SQLiteAsyncConnection _asyncConnection;
+        private static string _dbFile = string.Empty;
         #endregion Private Fields
 
         #region Public Methods
@@ -25,37 +25,32 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// </summary>
         /// <param name="dbFile">The full path of the database file to be used/created.</param>
         /// <remarks>
-        /// Creates the DB file in the platform-specific <see
-        /// cref="Environment.SpecialFolder.LocalApplicationData">Local
-        /// Application Data</see> directory and populates it with 'Earl Grey'
-        /// tea. If the DB file already exists and contains at least one entry
-        /// this should be a no-op.
         /// </remarks>
-        /// <exception cref="SQLiteException" />
+        /// <exception cref="TeaSqlException" />
         /// <exception cref="Exception" />
-        public async Task Initialize(string dbFile)
+        public void Initialize(string dbFile)
         {
             // The DbFile must be created, and populated with at least one initial tea variety.
             // The routines *should* all be non-destructive, relying on 'CreateIfNotExist' patterns, but I added some extra checks just to be sure.
             try
             {
-                _asyncConnection = new SQLiteAsyncConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex);
-
-                TableMapping? mapping = _asyncConnection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
-                if (mapping is null)
+                _dbFile = dbFile;
+                using (SQLiteConnection connection = new SQLiteConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex))
                 {
-                    CreateTableResult createTableResult = await _asyncConnection.CreateTableAsync<TeaModel>();
+                    TableMapping? mapping = connection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
+                    if (mapping is null)
+                    {
+                        CreateTableResult createTableResult = connection.CreateTable<TeaModel>();
+                    }
+                    if (connection.Table<TeaModel>().Count() < 1)
+                    {
+                        connection.Insert(new TeaModel("Earl Grey"));
+                    }
                 }
-                if (await _asyncConnection.Table<TeaModel>().CountAsync() < 1)
-                {
-                    await _asyncConnection.InsertAsync(new TeaModel("Earl Grey"));
-                }
-                _initialized = true;
-
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -66,20 +61,19 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public TeaModel Add(TeaModel tea)
         {
             try
             {
-                AddAsync(tea).ContinueWith((t) => { tea = t.Result; })
-                    .ConfigureAwait(false);
-                return tea;
+                return AddAsync(tea).Result;
             }
-            catch (Exception exception)
+            catch (SQLiteException ex)
             {
-                throw new Exception(exception.Message, exception);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
             }
         }
 
@@ -93,18 +87,18 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// A Task representing the add operation. The task result contains the
         /// tea as added to the database including its auto-assigned unique key.
         /// </returns>
-        /// <exception cref="SQLiteException"></exception>
+        /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<TeaModel> AddAsync(TeaModel tea)
         {
             try
             {
-                await _asyncConnection.InsertAsync(tea).ConfigureAwait(false);
+                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).InsertAsync(tea).ConfigureAwait(false);
                 return tea;
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -115,14 +109,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public TeaModel Update(TeaModel tea)
         {
-            UpdateAsync(tea).ContinueWith((t) => tea = t.Result)
-                .ConfigureAwait(false);
-            return tea;
+            try
+            {
+                return UpdateAsync(tea).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -137,19 +137,19 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// A Task representing the update operation. The task result contains
         /// the tea as it was updated.
         /// </returns>
-        /// <exception cref="SQLiteException" />
+        /// <exception cref="TeaSqlException" />
         /// <exception cref="Exception" />
         public async Task<TeaModel> UpdateAsync(TeaModel tea)
         {
             try
             {
                 tea = TeaModel.ValidateTea(tea);
-                await _asyncConnection.UpdateAsync(tea).ConfigureAwait(false);
+                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false);
                 return tea;
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -160,15 +160,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public bool Delete(TeaModel tea)
         {
-            bool deleted = false;
-            DeleteAsync(tea).ContinueWith((t) => deleted = t.Result)
-                .ConfigureAwait(false);
-            return deleted;
+            try
+            {
+                return DeleteAsync(tea).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -182,20 +187,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// A Task representing the delete operation. The task result contains
         /// true if the tea was deleted and false otherwise.
         /// </returns>
-        /// <exception cref="SQLiteException"></exception>
+        /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<bool> DeleteAsync(TeaModel tea)
         {
             try
             {
-                List<TeaModel> teas = await _asyncConnection.Table<TeaModel>().ToListAsync().ConfigureAwait(false);
+                List<TeaModel> teas = await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync().ConfigureAwait(false);
                 if (teas.Count <= 1)
                 {
                     throw new ApplicationException("Cannot delete the only tea in the database.");
                 }
                 bool deleted = false;
                 tea = TeaModel.ValidateTea(tea);
-                if (await _asyncConnection.DeleteAsync(tea).ConfigureAwait(false) == 1)
+                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).DeleteAsync(tea).ConfigureAwait(false) == 1)
                 {
                     deleted = true;
                 }
@@ -203,7 +208,7 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -214,15 +219,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
         public List<TeaModel> Get()
         {
-            List<TeaModel> teas = new List<TeaModel>();
-            GetAsync().ContinueWith((t) => teas = t.Result)
-                .ConfigureAwait(false);
-            return teas;
+            try
+            {
+                return GetAsync().Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -232,17 +242,17 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// A Task representing the get operation. The task result contains a
         /// List of all the teas in the database.
         /// </returns>
-        /// <exception cref="SQLiteException"></exception>
+        /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<List<TeaModel>> GetAsync()
         {
             try
             {
-                return await _asyncConnection.Table<TeaModel>().ToListAsync().ConfigureAwait(false);
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync().ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -253,15 +263,20 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// <summary>
         /// Use the async method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public TeaModel FindById(object id)
+        public TeaModel? FindById(object id)
         {
-            TeaModel? tea = null;
-            FindByIdAsync(id).ContinueWith((t) => tea = t.Result)
-                .ConfigureAwait(false);
-            return tea;
+            try
+            {
+                return FindByIdAsync(id).Result;
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
@@ -274,17 +289,17 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         /// A Task representing the retrieve operation. The task result contains
         /// the tea retrieved or null if not found.
         /// </returns>
-        /// <exception cref="SQLiteException"></exception>
+        /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<TeaModel> FindByIdAsync(object obj)
         {
             try
             {
-                return await _asyncConnection.FindAsync<TeaModel>(obj).ConfigureAwait(false);
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(obj).ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {
-                throw SQLiteException.New(ex.Result, ex.Message);
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
             catch (Exception ex)
             {
