@@ -34,6 +34,9 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
             // The routines *should* all be non-destructive, relying on 'CreateIfNotExist' patterns, but I added some extra checks just to be sure.
             try
             {
+                if (string.IsNullOrWhiteSpace(dbFile)) {
+                    throw new ArgumentNullException(nameof(dbFile), "You must specify a locator, either an API URL or a Sqlite database file.");
+                }
                 _dbFile = dbFile;
                 using (SQLiteConnection connection = new SQLiteConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex))
                 {
