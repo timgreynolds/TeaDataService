@@ -47,7 +47,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <br>If the user tries to set the steep time to a value of 30 minutes or longer an ArgumentException will be thrown.</br>
         /// </summary>
         [Required(ErrorMessage = "Tea must have a steep time."), MinLength(1, ErrorMessage = "Tea must have a steep time.")]
-        [DisplayFormat(DataFormatString = @"m\:ss")]
+        [DisplayFormat(DataFormatString = @"hh\:mm\:ss")]
         [Column("Steeptime"), NotNull]
         public TimeSpan SteepTime
         {
