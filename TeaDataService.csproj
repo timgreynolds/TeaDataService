@@ -8,7 +8,6 @@
     <Authors>Timothy Reynolds</Authors>
     <Company></Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <!-- <PackageOutputPath>..\nupkg</PackageOutputPath> -->
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Models\" />

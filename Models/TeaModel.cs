@@ -146,7 +146,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
             {
                 tea.BrewTemp = 212;
             }
-            if (tea.SteepTime > TimeSpan.FromMinutes(30) || tea.SteepTime <= TimeSpan.FromSeconds(1))
+            if (tea.SteepTime > TimeSpan.FromMinutes(30) || tea.SteepTime < TimeSpan.FromSeconds(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(tea.SteepTime), "Steep Time must be more than zero seconds and less than 30 minutes.");
             }
