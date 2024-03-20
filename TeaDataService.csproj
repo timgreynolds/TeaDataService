@@ -3,11 +3,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageId>Mahonkin.TeaDataService</PackageId>
-    <Version>1.3.2-1</Version>
-    <Authors>Timothy Reynolds</Authors>
-    <Company></Company>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Models\" />
