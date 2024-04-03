@@ -47,7 +47,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <br>If the user tries to set the steep time to a value of 30 minutes or longer an ArgumentException will be thrown.</br>
         /// </summary>
         [Required(ErrorMessage = "Tea must have a steep time."), MinLength(1, ErrorMessage = "Tea must have a steep time.")]
-        [DisplayFormat(ApplyFormatInEditMode = true, DataFormatString = @"mm\:ss")]
+        [DisplayFormat(DataFormatString = @"hh\:mm\:ss")]
         [Column("Steeptime"), NotNull]
         public TimeSpan SteepTime
         {
@@ -75,7 +75,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <br>Public, parameterless constructor required by the SQLite serialization/deserialization routines. If you try to use it you will almost
         /// undoubtedly get an exception.</br>
         /// </summary>
-        public TeaModel()
+        public TeaModel() : this(string.Empty)
         {
         }
 
@@ -94,14 +94,13 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <param name="steepTime">The amount of time, expressed as a string in standard 'mm:ss' format, the tea should steep. If set to a time greater than 30 minutes an ArgumentException is thrown.</param>
         /// <param name="brewTemp">The temperature in degrees farenheit at which the tea should steep. If attempting to set to a value greater than 212 (boiling) it will be set to 212.</param>
         /// <exception cref="ArgumentException">ArgumentException</exception>
-        public TeaModel(string name, string steepTime = "02:00", int brewTemp = 212)
+        public TeaModel(string name, string steepTime = "00:02:00", int brewTemp = 212)
         {
-            TimeSpan time = TimeSpan.MaxValue;
-            if (TimeSpan.TryParseExact(steepTime, @"mm\:ss", null, out time) == false)
+            if (TimeSpan.TryParse(steepTime, out TimeSpan time) == false)
             {
                 throw new ArgumentException($"Could not parse provided steep time {steepTime}", nameof(steepTime));
             }
-            SteepTime = (time <= TimeSpan.FromMinutes(30)) ? time : throw new ArgumentException($"Steep times of greater than 30 minutes ({steepTime}) really don't make sense.", nameof(steepTime));
+            SteepTime = (time <= TimeSpan.FromMinutes(30) && time > TimeSpan.Zero) ? time : throw new ArgumentException($"Steep times of greater than 30 minutes ({steepTime}) really don't make sense.", nameof(steepTime));
             Name = name;
             BrewTemp = (brewTemp <= 212 && brewTemp > 0) ? brewTemp : 212;
         }
@@ -147,7 +146,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
             {
                 tea.BrewTemp = 212;
             }
-            if (tea.SteepTime > TimeSpan.FromMinutes(30) || tea.SteepTime <= TimeSpan.FromMinutes(0))
+            if (tea.SteepTime > TimeSpan.FromMinutes(30) || tea.SteepTime < TimeSpan.FromSeconds(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(tea.SteepTime), "Steep Time must be more than zero seconds and less than 30 minutes.");
             }

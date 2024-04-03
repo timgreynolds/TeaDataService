@@ -5,91 +5,104 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using com.mahonkin.tim.TeaDataService.DataModel;
-using Microsoft.Extensions.Configuration;
 
 namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
 {
-    public class TeaRestService<T> : IDataService<T> where T : TeaModel
+    public class TeaRestService : IDataService<RestResponse>
     {
-        private static HttpClient _client = new HttpClient();
+        private static readonly HttpClient _client = new HttpClient();
 
         /// <summary>
-        /// Use the async method if possible.
+        /// Use the <see cref="AddAsync()" /> method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public T Add(object obj)
+        public RestResponse Add(object tea)
         {
-            AddAsync(obj).ContinueWith(t => obj = t.Result).ConfigureAwait(false);
-            return (T)obj;
+            return AddAsync(tea).Result;
         }
 
         /// <summary>
-        /// Adds the given tea to the database in an asynchronous manner.
+        /// Adds the given tea to the data provider in an asynchronous manner.
         /// </summary>
-        /// <param name="obj">
-        /// A <see cref="TeaModel">Tea</see> to add to the database.
+        /// <param name="tea">
+        /// A <see cref="TeaModel">Tea</see> to add to the data provider.
         /// </param>
         /// <returns>
         /// A Task representing the add operation. The task result contains the
-        /// tea as added to the database including its auto-assigned unique key.
+        /// result of the Add operation.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<T> AddAsync(object obj)
+        public async Task<RestResponse> AddAsync(object tea)
         {
-            HttpResponseMessage response = (await _client.PostAsJsonAsync("api/teas", (T)obj)).EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<T>() ?? (T)obj;
+            try
+            {
+                HttpResponseMessage response = await _client.PostAsJsonAsync("api/teas", tea);
+                RestResponse? content = await response.Content.ReadFromJsonAsync<RestResponse>();
+                return content ?? new RestResponse()
+                {
+                    Success = false,
+                    Message = $"{response.StatusCode} {response.ReasonPhrase}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RestResponse()
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         /// <summary>
-        /// Use the async method if possible.
+        /// Use the <see cref="DeleteAsync()"/> method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public bool Delete(object obj)
+        public object Delete(object tea)
         {
-            bool success = false;
-            DeleteAsync(obj).ContinueWith(t => success = t.Result).ConfigureAwait(false);
-            return success;
+            return DeleteAsync((TeaModel)tea).Result;
         }
 
         /// <summary>
-        /// Deletes the given tea from the database using its primary key in an
-        /// asynchronous manner. The object is required to have a primary key.
+        /// Deletes the given tea from the data provider in an asynchronous manner. 
+        /// The object is required to have a primary key.
         /// </summary>
-        /// <param name="obj">
+        /// <param name="tea">
         /// The <see cref="TeaModel">Tea</see> to be deleted.
         /// </param>
         /// <returns>
         /// A Task representing the delete operation. The task result contains
-        /// true if the tea was deleted and false otherwise.
+        /// the result of the operation.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<bool> DeleteAsync(object obj)
+        public async Task<object> DeleteAsync(object tea)
         {
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "api/teas");
-            request.Content = JsonContent.Create((T)obj, MediaTypeHeaderValue.Parse("application/json"));
-            HttpResponseMessage response = (await _client.SendAsync(request)).EnsureSuccessStatusCode();
-            bool success = await response.Content.ReadFromJsonAsync<bool>();
-            return success;
+            try
+            {
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "api/teas")
+                {
+                    Content = JsonContent.Create((TeaModel)tea, MediaTypeHeaderValue.Parse("application/json"))
+                };
+                HttpResponseMessage response = await _client.SendAsync(request);
+                RestResponse? content = await response.Content.ReadFromJsonAsync<RestResponse>();
+                return content ?? new RestResponse()
+                {
+                    Success = false,
+                    Message = $"{response.StatusCode} {response.ReasonPhrase}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RestResponse()
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         /// <summary>
-        /// Use the async method if possible.
+        /// Use the <see cref="FindByIdAsync()" /> method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public T FindById(object id)
+        public RestResponse? FindById(object id)
         {
-            TeaModel tea = new TeaModel();
-            FindByIdAsync(id).ContinueWith(t => tea = t.Result)
-                .ConfigureAwait(false);
-            return (T)tea;
+            return FindByIdAsync(id).Result;
         }
 
         /// <summary>
@@ -97,85 +110,104 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// web service in an asynchronous manner. Use of this method requires that
         /// the given tea have a primary key.
         /// </summary>
-        /// <param name="obj">The primary key of the tea to retrieve.</param>
+        /// <param name="id">The primary key of the tea to retrieve.</param>
         /// <returns>
         /// A Task representing the retrieve operation. The task result contains
         /// the tea retrieved or null if not found.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<T> FindByIdAsync(object id)
+        public async Task<RestResponse?> FindByIdAsync(object id)
         {
-            return (await _client.GetFromJsonAsync<T>($"api/teas/{id}").ConfigureAwait(false)) ?? (T)(new TeaModel());
+            try
+            {
+                return (await _client.GetFromJsonAsync<RestResponse>($"api/teas/{id}").ConfigureAwait(false)) ?? new RestResponse()
+                {
+                    Success = false,
+                    Message = $"Could not find tea with ID {id}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RestResponse()
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         /// <summary>
-        /// Use the async method if possible.
+        /// Use the <see cref="GetAsync()" /> method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public List<T> Get()
+        public RestResponse Get()
         {
-            List<T> teas = new List<T>();
-            GetAsync().ContinueWith(t => teas = t.Result).ConfigureAwait(false);
-            return teas;
+            return GetAsync().Result;
         }
 
         /// <summary>
-        /// Gets all the teas from the web service in an asynchronous manner.
+        /// Gets all the teas from the data provider in an asynchronous manner.
         /// </summary>
         /// <returns>
         /// A Task representing the get operation. The task result contains a
-        /// List of all the teas in the database.
+        /// List of all the teas in the data provider.
         /// </returns>
-        /// <exception cref="HttpRequestException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<List<T>> GetAsync()
+        public async Task<RestResponse> GetAsync()
         {
-            return (await _client.GetFromJsonAsync<List<T>>("api/teas")
-                .ConfigureAwait(false)) ?? new List<T>();
+            try
+            {
+                return (await _client.GetFromJsonAsync<RestResponse>("api/teas").ConfigureAwait(false)) ?? new RestResponse()
+                {
+                    Success = false,
+                    Message = "No teas found in the data provider."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RestResponse()
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         /// <summary>
         /// Initialize the HTTP client.
         /// </summary>
-        /// <remarks>
-        /// Reads the BaseURL from the 'TeaApiUrl connection string in the
-        /// appsettings.json file of the assembly.
-        /// </remarks>
-        public void Initialize()
+        /// <param name="baseAddress">
+        /// The Base Address of the REST API endpoint. 
+        /// </param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="UriFormatException" />
+        /// <exception cref="Exception" />
+        public void Initialize(string baseAddress)
         {
-            IConfiguration configuration = new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json", false)
-                    .AddJsonFile("appsettings.Development.json", true)
-                    .Build();
-            string? baseAddress = configuration.GetConnectionString("TeaApiUrl");
-
             if (_client.BaseAddress is null)
             {
-                if (String.IsNullOrEmpty(baseAddress) == false)
+                try
                 {
                     _client.BaseAddress = new Uri(baseAddress);
                 }
-                else
+                catch (ArgumentNullException ex)
                 {
-                    throw new ArgumentNullException("TeaApiUrl", "A URL endpoint must be specified for the Tea API Web Service in the appsettings.json file.");
+                    throw new ArgumentNullException(ex.Message, ex);
+                }
+                catch (UriFormatException ex)
+                {
+                    throw new UriFormatException(ex.Message, ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message, ex);
                 }
             }
         }
 
         /// <summary>
-        /// Use the async method if possible.
+        /// Use the <see cref="UpdateAsync()" /> method if possible.
         /// </summary>
-        /// <remarks>
-        /// This wraps the async method in a continuation using ContinueWith.
-        /// </remarks>
-        public T Update(object obj)
+        public RestResponse Update(object tea)
         {
-            UpdateAsync(obj).ContinueWith(t => obj = t.Result)
-                .ConfigureAwait(false);
-            return (T)obj;
+            return UpdateAsync((TeaModel)tea).Result;
         }
 
         /// <summary>
@@ -183,22 +215,62 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaRestService
         /// for its primary key in an asynchronous manner. The object is 
         /// required to have a primary key.
         /// </summary>
-        /// <param name="obj">
+        /// <param name="tea">
         /// The <see cref="TeaModel">Tea</see> to be updated.
         /// </param>
         /// <returns>
         /// A Task representing the update operation. The task result contains
         /// the tea as it was updated.
         /// </returns>
-        /// <exception cref="HttpRequestException" />
-        /// <exception cref="Exception" />
-        public async Task<T> UpdateAsync(object obj)
+        public async Task<RestResponse> UpdateAsync(object tea)
         {
-            HttpResponseMessage responseMessage = (
-                await _client.PutAsJsonAsync<T>("api/teas", (T)obj)
-                .ConfigureAwait(false)
-                ).EnsureSuccessStatusCode();
-            return (await responseMessage.Content.ReadFromJsonAsync<T>().ConfigureAwait(false)) ?? (T)obj;
+            try
+            {
+                HttpResponseMessage response = await _client.PutAsJsonAsync("api/teas", (TeaModel)tea).ConfigureAwait(false);
+                return (await response.Content.ReadFromJsonAsync<RestResponse>().ConfigureAwait(false)) ?? new RestResponse()
+                {
+                    Success = false,
+                    Message = $"{response.StatusCode} {response.ReasonPhrase}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RestResponse()
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Use the overload <see cref="Get()" /> method that returns 
+        /// a <see cref="RestResponse" />  instead of a List.
+        /// </summary>
+        /// <returns>
+        /// A one-element list containing the <see cref="RestResponse" />
+        /// returned from the web service. This RestResponse will contain
+        /// a List of zero or more <see cref="TeaModel">teas</see> found in 
+        /// the data provider.
+        /// </returns>
+        List<RestResponse> IDataService<RestResponse>.Get()
+        {
+            return new List<RestResponse>() { Get() };
+        }
+
+        /// <summary>
+        /// Use the overload <see cref="GetAsync()" /> method that returns 
+        /// a <see cref="RestResponse" />  instead of a List.
+        /// </summary>
+        /// <returns>
+        /// A Task respresenting the Get operation. The result of the Task 
+        /// will contain a one-element list of <see cref="RestResponse" />.
+        /// This RestResponse will contain a List of zero or more 
+        /// <see cref="TeaModel">teas</see> found in the data provider.
+        /// </returns>
+        async Task<List<RestResponse>> IDataService<RestResponse>.GetAsync()
+        {
+            return new List<RestResponse>() { await GetAsync() };
         }
     }
 }
