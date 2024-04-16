@@ -6,7 +6,7 @@ using com.mahonkin.tim.TeaDataService.DataModel;
 using com.mahonkin.tim.TeaDataService.Exceptions;
 using SQLite;
 
-namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
+namespace com.mahonkin.tim.TeaDataService.Services
 {
     /// <summary>
     /// Implementation of <see cref="IDataService{T}">IDataService"</see> using
@@ -19,46 +19,6 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         #endregion Private Fields
 
         #region Public Methods
-        /// <summary>
-        /// Ensures that the database exists and contains at least one tea variety.
-        /// </summary>
-        /// <param name="dbFile">The full path of the database file to be used/created.</param>
-        /// <exception cref="TeaSqlException" />
-        /// <exception cref="Exception" />
-        public void Initialize(string dbFile)
-        {
-            // The DbFile must be created, and populated with at least one initial tea variety.
-            // The routines *should* all be non-destructive, relying on 'CreateIfNotExist' patterns, but I added some extra checks just to be sure.
-            try
-            {
-                if (string.IsNullOrWhiteSpace(dbFile))
-                {
-                    throw new ArgumentNullException(nameof(dbFile), "You must specify a locator, either an API URL or a Sqlite database file.");
-                }
-                _dbFile = dbFile;
-                using (SQLiteConnection connection = new SQLiteConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex))
-                {
-                    TableMapping? mapping = connection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
-                    if (mapping is null)
-                    {
-                        CreateTableResult createTableResult = connection.CreateTable<TeaModel>();
-                    }
-                    if (connection.Table<TeaModel>().Count() < 1)
-                    {
-                        connection.Insert(new TeaModel("Earl Grey"));
-                    }
-                }
-            }
-            catch (SQLiteException ex)
-            {
-                throw new TeaSqlException(ex.Result, ex.Message, ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-        }
-
         /// <summary>
         /// Use the <see cref="AddAsync()">async</see> method if possible.
         /// </summary>
@@ -84,46 +44,6 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
             try
             {
                 await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).InsertAsync((TeaModel)tea).ConfigureAwait(false);
-                return (TeaModel)tea;
-            }
-            catch (SQLiteException ex)
-            {
-                throw new TeaSqlException(ex.Result, ex.Message, ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-        }
-
-        /// <summary>
-        /// Use the <see cref="UpdateAsync()">async</see> method if possible.
-        /// </summary>
-        public TeaModel Update(object tea)
-        {
-            return UpdateAsync(tea).Result;
-        }
-
-        /// <summary>
-        /// Updates all of the columns of a table using the given tea except
-        /// for its primary key in an asynchronous manner. The object is 
-        /// required to have a valid primary key.
-        /// </summary>
-        /// <param name="tea">
-        /// The <see cref="TeaModel">Tea</see> to be updated.
-        /// </param>
-        /// <returns>
-        /// A Task representing the update operation. The task result contains
-        /// the tea as it was updated.
-        /// </returns>
-        /// <exception cref="TeaSqlException" />
-        /// <exception cref="Exception" />
-        public async Task<TeaModel> UpdateAsync(object tea)
-        {
-            try
-            {
-                tea = TeaModel.ValidateTea((TeaModel)tea);
-                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false);
                 return (TeaModel)tea;
             }
             catch (SQLiteException ex)
@@ -170,9 +90,46 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
                 tea = TeaModel.ValidateTea((TeaModel)tea);
                 if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).DeleteAsync(tea).ConfigureAwait(false) == 1)
                 {
-                     return true;
+                    return true;
                 }
                 throw new TeaSqlException(SQLite3.Result.Error, $"{tea} could not be deleted.");
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Use the <see cref="FindByIdAsync()">async</see> method if possible.
+        /// </summary>
+        public TeaModel FindById(object id)
+        {
+            return FindByIdAsync(id).Result;
+        }
+
+        /// <summary>
+        /// Attempts to retrieve the tea with the given primary key from the
+        /// database in an asynchronous manner. Use of this method requires that
+        /// the given tea have a primary key.
+        /// </summary>
+        /// <param name="id">The primary key of the tea to retrieve.</param>
+        /// <returns>
+        /// A Task representing the retrieve operation. The task result contains
+        /// the tea retrieved or null if not found.
+        /// </returns>
+        /// <exception cref="TeaSqlException"></exception>
+        /// <exception cref="Exception"></exception>
+        public async Task<TeaModel> FindByIdAsync(object tea)
+        {
+            try
+            {
+                tea = TeaModel.ValidateTea((TeaModel)tea);                                                                                                                                                                                                                                                                                                                                                                                                                                            
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(tea).ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {
@@ -218,30 +175,74 @@ namespace com.mahonkin.tim.TeaDataService.Services.TeaSqLiteService
         }
 
         /// <summary>
-        /// Use the <see cref="FindByIdAsync()">async</see> method if possible.
+        /// Ensures that the database exists and contains at least one tea variety.
         /// </summary>
-        public TeaModel? FindById(object id)
+        /// <param name="dbFile">The full path of the database file to be used/created.</param>
+        /// <exception cref="TeaSqlException" />
+        /// <exception cref="Exception" />
+        public void Initialize(string dbFile)
         {
-            return FindByIdAsync(id).Result;
+            // The DbFile must be created, and populated with at least one initial tea variety.
+            // The routines *should* all be non-destructive, relying on 'CreateIfNotExist' patterns, but I added some extra checks just to be sure.
+            try
+            {
+                if (string.IsNullOrWhiteSpace(dbFile))
+                {
+                    throw new ArgumentNullException(nameof(dbFile), "You must specify a locator, either an API URL or a Sqlite database file.");
+                }
+                _dbFile = dbFile;
+                using (SQLiteConnection connection = new SQLiteConnection(dbFile, SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex))
+                {
+                    TableMapping? mapping = connection.TableMappings.FirstOrDefault(m => m.TableName.Equals("TeaVarieties", StringComparison.OrdinalIgnoreCase));
+                    if (mapping is null)
+                    {
+                        CreateTableResult createTableResult = connection.CreateTable<TeaModel>();
+                    }
+                    if (connection.Table<TeaModel>().Count() < 1)
+                    {
+                        connection.Insert(new TeaModel("Earl Grey"));
+                    }
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                throw new TeaSqlException(ex.Result, ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
         }
 
         /// <summary>
-        /// Attempts to retrieve the tea with the given primary key from the
-        /// database in an asynchronous manner. Use of this method requires that
-        /// the given tea have a primary key.
+        /// Use the <see cref="UpdateAsync()">async</see> method if possible.
         /// </summary>
-        /// <param name="id">The primary key of the tea to retrieve.</param>
+        public TeaModel Update(object tea)
+        {
+            return UpdateAsync(tea).Result;
+        }
+
+        /// <summary>
+        /// Updates all of the columns of a table using the given tea except
+        /// for its primary key in an asynchronous manner. The object is 
+        /// required to have a valid primary key.
+        /// </summary>
+        /// <param name="tea">
+        /// The <see cref="TeaModel">Tea</see> to be updated.
+        /// </param>
         /// <returns>
-        /// A Task representing the retrieve operation. The task result contains
-        /// the tea retrieved or null if not found.
+        /// A Task representing the update operation. The task result contains
+        /// the tea as it was updated.
         /// </returns>
-        /// <exception cref="TeaSqlException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<TeaModel?> FindByIdAsync(object tea)
+        /// <exception cref="TeaSqlException" />
+        /// <exception cref="Exception" />
+        public async Task<TeaModel> UpdateAsync(object tea)
         {
             try
             {
-                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(tea).ConfigureAwait(false);
+                tea = TeaModel.ValidateTea((TeaModel)tea);
+                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false);
+                return (TeaModel)tea;
             }
             catch (SQLiteException ex)
             {

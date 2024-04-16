@@ -48,7 +48,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <returns>
         /// The type T object represented by <paramref name="id">id</paramref>
         /// </returns>
-        public T? FindById(object id);
+        public T FindById(object id);
 
         /// <summary>
         /// Retrieve a specific object from the data provider by its unique
@@ -61,7 +61,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the retrieval operation. The task result
         /// contains the type T object found.
         /// </returns>
-        public Task<T?> FindByIdAsync(object id);
+        public Task<T> FindByIdAsync(object id);
 
         /// <summary>
         /// Add a new object to the data provider.
