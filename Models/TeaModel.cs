@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using SQLite;
 
 namespace com.mahonkin.tim.TeaDataService.DataModel
@@ -22,6 +23,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// The database-assigned unique ID for this tea record. There should be no reason to set it in code.
         /// </summary>
         [Column("ID"), PrimaryKey, AutoIncrement]
+        [JsonRequired()]
         public int Id
         {
             get => _id;
@@ -36,6 +38,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// </summary>
         [Required(ErrorMessage = "Tea must have a name."), MinLength(1, ErrorMessage = "Tea Must have a name.")]
         [Column("Name"), Unique, NotNull]
+        [JsonRequired]
         public string Name
         {
             get => _name;
@@ -49,6 +52,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         [Required(ErrorMessage = "Tea must have a steep time."), MinLength(1, ErrorMessage = "Tea must have a steep time.")]
         [DisplayFormat(DataFormatString = @"hh\:mm\:ss")]
         [Column("Steeptime"), NotNull]
+        [JsonRequired]
         public TimeSpan SteepTime
         {
             get => _steepTime;
@@ -62,6 +66,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         [Required(ErrorMessage = "Tea must have a Brew Temperature.")]
         [Range(1, 212, ErrorMessage = "Brew temerature must be between 1 and 212")]
         [Column("Brewtemp"), NotNull]
+        [JsonRequired]
         public int BrewTemp
         {
             get => _brewTemp;
@@ -122,7 +127,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         {
             Name = name;
             SteepTime = (steepTime <= TimeSpan.FromMinutes(30)) ? steepTime : throw new ArgumentException($"Steep times greater than 30 minutes ({steepTime}) don't really make sense.", nameof(steepTime));
-            BrewTemp = (brewTemp <= 212 && brewTemp > 0) ? brewTemp : 212;
+            BrewTemp = (brewTemp <= 212 && brewTemp > 32) ? brewTemp : 212;
         }
         #endregion Constructors
 
@@ -142,7 +147,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
             {
                 throw new ArgumentNullException(nameof(tea.Name), "Tea variety must have a name.");
             }
-            if (tea.BrewTemp > 212 || tea.BrewTemp <= 0)
+            if (tea.BrewTemp > 212 || tea.BrewTemp <= 32)
             {
                 tea.BrewTemp = 212;
             }
@@ -150,9 +155,16 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
             {
                 throw new ArgumentOutOfRangeException(nameof(tea.SteepTime), "Steep Time must be more than zero seconds and less than 30 minutes.");
             }
-
             return tea;
         }
         #endregion Public Methods
+    }
+
+    public static class TeaModelExtensions
+    {
+        public static TeaModel Validate(this TeaModel tea)
+        {
+            return TeaModel.ValidateTea(tea);
+        }
     }
 }
