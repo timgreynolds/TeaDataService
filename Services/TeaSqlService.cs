@@ -124,12 +124,11 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// </returns>
         /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<TeaModel> FindByIdAsync(object tea)
+        public async Task<TeaModel> FindByIdAsync(object id)
         {
             try
-            {
-                tea = TeaModel.ValidateTea((TeaModel)tea);                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(tea).ConfigureAwait(false);
+            {                                                                                                                                                                                                                                                                                                                                                                                                                                         
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(id).ConfigureAwait(false);
             }
             catch (SQLiteException ex)
             {
