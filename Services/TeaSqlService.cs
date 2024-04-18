@@ -239,8 +239,12 @@ namespace com.mahonkin.tim.TeaDataService.Services
         {
             try
             {
-                tea = TeaModel.ValidateTea((TeaModel)tea);
-                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false);
+                ((TeaModel)tea).Validate();
+                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false) < 1) 
+                {
+                    SQLiteException exception = SQLiteException.New(SQLite3.Result.Error, "The tea could not be updated.");
+                    exception.Data.Add("Tea", tea);
+                }
                 return (TeaModel)tea;
             }
             catch (SQLiteException ex)
