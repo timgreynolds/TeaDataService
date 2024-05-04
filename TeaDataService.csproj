@@ -1,10 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="$(MSBuildProjectDirectory)\Version.props" />
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
+        <!-- <TargetFramework>net8.0</TargetFramework> -->
         <OutputType>Library</OutputType>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <CreateDocumentationFile>true</CreateDocumentationFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <EmbedAllSources>true</EmbedAllSources>
+        <DebugType>Embedded</DebugType>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <PropertyGroup>
         <PackageId>Mahonkin.TeaDataService</PackageId>
@@ -54,11 +62,17 @@
         <PackageReference Include="SQLitePCLRaw.core"
                           Version="2.1.8" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"
-                          Version="8.0.0" />
+                          Version="9.0.0-preview.3.24172.9" />
         <PackageReference Include="System.Net.Http.Json"
-                          Version="8.0.0" />
+                          Version="9.0.0-preview.3.24172.9" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json"
-                          Version="8.0.0" />
+                          Version="9.0.0-preview.3.24172.9" />
+        <!-- <PackageReference Include="Microsoft.Extensions.DependencyInjection"
+                          Version="9.0.0-preview.3.24172.9" />
+        <PackageReference Include="System.Net.Http.Json"
+                          Version="9.0.0-preview.3.24172.9" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json"
+                          Version="9.0.0-preview.3.24172.9" /> -->
     </ItemGroup>
     <Target Name="SaveLastReleaseVersion"
             AfterTargets="Build"

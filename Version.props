@@ -1,6 +1,6 @@
-﻿<Project>
-                <PropertyGroup>
-                <LastReleaseVersion>2.0.2</LastReleaseVersion>
-                <LastReleaseDateTime>2024/04/30 21:10:00</LastReleaseDateTime>
-                </PropertyGroup>
-                </Project>
+<Project>
+<PropertyGroup>
+<LastReleaseVersion>2.0.2</LastReleaseVersion>
+<LastReleaseDateTime>2024/04/30 21:10:00</LastReleaseDateTime>
+</PropertyGroup>
+</Project>
