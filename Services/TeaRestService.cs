@@ -15,9 +15,11 @@ namespace com.mahonkin.tim.TeaDataService.Services
         private static readonly HttpClient _client = new HttpClient();
         private JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
+#if NET8_0_OR_GREATER
             PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
-            PropertyNameCaseInsensitive = true,
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+#endif
+            PropertyNameCaseInsensitive = true
         };
 
         /// <summary>
