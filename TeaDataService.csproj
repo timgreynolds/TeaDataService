@@ -1,29 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="$(MSBuildProjectDirectory)\Version.props" />
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <!-- <TargetFramework>net8.0</TargetFramework> -->
+        <TargetFramework>net7.0;net8.0;net9.0</TargetFramework>
         <OutputType>Library</OutputType>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <CreateDocumentationFile>true</CreateDocumentationFile>
-        <IncludeSymbols>true</IncludeSymbols>
-        <EmbedAllSources>true</EmbedAllSources>
-        <DebugType>Embedded</DebugType>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    </PropertyGroup>
-    <PropertyGroup>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>Mahonkin.TeaDataService</PackageId>
-        <Title />
-        <Description />
+        <Title>Tea Timer Data Service</Title>
+        <Description>            
+            Service that provides access to an underlying datastore of teas. Ultimately the datastore is a SQLite DB.
+            Services provided use SQLite directly as well as a REST service.
+        </Description>
         <Authors>Timothy Reynolds</Authors>
         <Company />
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Copyright>Copyright 2023-2024 Timothy Reynolds</Copyright>
+        <PackageTags />
+        <PackageProjectUrl>https://github.com/timgreynolds/TeaDataService</PackageProjectUrl>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>git@github.com:timgreynolds/TeaDataService.git</RepositoryUrl>
+        <RepositoryBranch>main</RepositoryBranch>
         <PackageReadmeFile />
         <PackageIcon />
-        <PackageTags />
+        <PackageReleaseNotes />
+        <CreateDocumentationFile>true</CreateDocumentationFile>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <IncludeSymbols Condition=" '$(Configuration)' == 'Debug' ">true</IncludeSymbols>
+        <EmbedAllSources Condition=" '$(Configuration)' == 'Debug' ">true</EmbedAllSources>
+        <DebugType Condition=" '$(Configuration)' == 'Debug' ">Embedded</DebugType>
         <MajorNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([System.Version]::Parse($(LastReleaseVersion)).Major)</MajorNumber>
         <MinorNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([System.Version]::Parse($(LastReleaseVersion)).Minor)</MinorNumber>
         <BuildNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([MSBuild]::Add($([System.Version]::Parse($(LastReleaseVersion)).Build), 1))</BuildNumber>
@@ -31,13 +35,6 @@
         <VersionSuffix Condition=" '$(Configuration)' == 'Release' " />
         <VersionPrefix Condition=" '$(Configuration)' == 'Debug' And 'LastReleaseVersion' != '' ">$(LastReleaseVersion)</VersionPrefix>
         <VersionSuffix Condition=" '$(Configuration)' == 'Debug' And 'LastReleaseDateTime' != '' ">$([System.Convert]::ToInt32($([System.TimeSpan]::FromTicks($([MsBuild]::Subtract($([System.DateTime]::Now.Ticks), $([System.DateTime]::Parse($(LastReleaseDateTime)).Ticks)))).TotalMinutes)))</VersionSuffix>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <CreateDocumentationFile>true</CreateDocumentationFile>
-        <IncludeSymbols>true</IncludeSymbols>
-        <EmbedAllSources>true</EmbedAllSources>
-        <DebugType>Embedded</DebugType>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <ItemGroup>
         <None Remove="Models\" />
@@ -67,12 +64,6 @@
                           Version="9.0.0-preview.3.24172.9" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json"
                           Version="9.0.0-preview.3.24172.9" />
-        <!-- <PackageReference Include="Microsoft.Extensions.DependencyInjection"
-                          Version="9.0.0-preview.3.24172.9" />
-        <PackageReference Include="System.Net.Http.Json"
-                          Version="9.0.0-preview.3.24172.9" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json"
-                          Version="9.0.0-preview.3.24172.9" /> -->
     </ItemGroup>
     <Target Name="SaveLastReleaseVersion"
             AfterTargets="Build"
