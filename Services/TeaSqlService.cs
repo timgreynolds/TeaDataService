@@ -9,8 +9,7 @@ using SQLite;
 namespace com.mahonkin.tim.TeaDataService.Services
 {
     /// <summary>
-    /// Implementation of <see cref="IDataService{T}">IDataService"</see> using
-    /// SQLite and a database of teas.
+    /// Implementation of <see cref="IDataService{T}">IDataService"</see> using SQLite and a database of teas.
     /// </summary>
     public class TeaSqlService : IDataService<TeaModel>
     {
@@ -20,11 +19,11 @@ namespace com.mahonkin.tim.TeaDataService.Services
 
         #region Public Methods
         /// <summary>
-        /// Use the <see cref="AddAsync()">async</see> method if possible.
+        /// Use the <see cref="AddAsync(object)">async</see> method if possible.
         /// </summary>
-        public TeaModel Add(object tea)
+        public TeaModel Add(object? tea)
         {
-            return AddAsync((TeaModel)tea).Result;
+            return AddAsync(tea).Result;
         }
 
         /// <summary>
@@ -37,29 +36,34 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the add operation. The task result contains the
         /// tea as added to the database including its auto-assigned unique key.
         /// </returns>
-        /// <exception cref="TeaSqlException"></exception>
-        /// <exception cref="Exception"></exception>
-        public async Task<TeaModel> AddAsync(object tea)
+        /// <exception cref="TeaSqlException" />
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="Exception" /> 
+        public async Task<TeaModel> AddAsync(object? tea)
         {
             try
             {
-                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).InsertAsync((TeaModel)tea).ConfigureAwait(false);
+                if (tea == null)
+                {
+                    throw new ArgumentNullException(nameof(tea), "Attempt to add an empty tea to the database.");
+                }
+                await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).InsertAsync((TeaModel)tea);
                 return (TeaModel)tea;
             }
             catch (SQLiteException ex)
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
 
         /// <summary>
-        /// Use the <see cref="DeleteAsync()">async</see> method if possible.
+        /// Use the <see cref="DeleteAsync(object)">async</see> method if possible.
         /// </summary>
-        public object Delete(object tea)
+        public object Delete(object? tea)
         {
             return DeleteAsync(tea).Result;
         }
@@ -77,18 +81,23 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// </returns>
         /// <exception cref="ApplicationException" /> 
         /// <exception cref="TeaSqlException" />
+        /// <exception cref="ArgumentNullException" />
         /// <exception cref="Exception" />
-        public async Task<object> DeleteAsync(object tea)
+        public async Task<object> DeleteAsync(object? tea)
         {
             try
             {
-                List<TeaModel> teas = await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync().ConfigureAwait(false);
+                if (tea is null)
+                {
+                    throw new ArgumentNullException(nameof(tea), "Attempt to delete an empty tea from the database.");
+                }
+                List<TeaModel> teas = await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync();
                 if (teas.Count <= 1)
                 {
-                    throw new ApplicationException("Cannot delete the only tea in the database.");
+                    throw new TeaSqlException(SQLite3.Result.Error, SQLite3.ExtendedResult.ConstraintCheck, "Cannot delete the only tea in the database.");
                 }
-                tea = TeaModel.ValidateTea((TeaModel)tea);
-                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).DeleteAsync(tea).ConfigureAwait(false) == 1)
+                ((TeaModel)tea).Validate();
+                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).DeleteAsync(tea) == 1)
                 {
                     return true;
                 }
@@ -98,16 +107,16 @@ namespace com.mahonkin.tim.TeaDataService.Services
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
 
         /// <summary>
-        /// Use the <see cref="FindByIdAsync()">async</see> method if possible.
+        /// Use the <see cref="FindByIdAsync(object)">async</see> method if possible.
         /// </summary>
-        public TeaModel FindById(object id)
+        public TeaModel FindById(object? id)
         {
             return FindByIdAsync(id).Result;
         }
@@ -124,19 +133,23 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// </returns>
         /// <exception cref="TeaSqlException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<TeaModel> FindByIdAsync(object id)
+        public async Task<TeaModel> FindByIdAsync(object? id)
         {
             try
-            {                                                                                                                                                                                                                                                                                                                                                                                                                                         
-                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(id).ConfigureAwait(false);
+            {
+                if (id == null)
+                {
+                    throw new ArgumentNullException(nameof(id), "Attempt to find an empty ID in the database.");
+                }
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).FindAsync<TeaModel>(id);
             }
             catch (SQLiteException ex)
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
 
@@ -161,15 +174,15 @@ namespace com.mahonkin.tim.TeaDataService.Services
         {
             try
             {
-                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync().ConfigureAwait(false);
+                return await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex).Table<TeaModel>().ToListAsync();
             }
             catch (SQLiteException ex)
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
 
@@ -207,16 +220,16 @@ namespace com.mahonkin.tim.TeaDataService.Services
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
 
         /// <summary>
-        /// Use the <see cref="UpdateAsync()">async</see> method if possible.
+        /// Use the <see cref="UpdateAsync(object)">async</see> method if possible.
         /// </summary>
-        public TeaModel Update(object tea)
+        public TeaModel Update(object? tea)
         {
             return UpdateAsync(tea).Result;
         }
@@ -235,15 +248,20 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// </returns>
         /// <exception cref="TeaSqlException" />
         /// <exception cref="Exception" />
-        public async Task<TeaModel> UpdateAsync(object tea)
+        public async Task<TeaModel> UpdateAsync(object? tea)
         {
             try
             {
-                ((TeaModel)tea).Validate();
-                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea).ConfigureAwait(false) < 1) 
+                if (tea == null || ((TeaModel)tea).Id == 0)
                 {
-                    SQLiteException exception = SQLiteException.New(SQLite3.Result.Error, "The tea could not be updated.");
+                    throw new ArgumentNullException(nameof(tea), "Attempt to update an empty tea from the database.");
+                }
+                ((TeaModel)tea).Validate();
+                if (await new SQLiteAsyncConnection(_dbFile, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.FullMutex).UpdateAsync(tea) < 1)
+                {
+                    TeaSqlException exception = new TeaSqlException(SQLite3.Result.Error, "The tea could not be updated.");
                     exception.Data.Add("Tea", tea);
+                    throw exception;
                 }
                 return (TeaModel)tea;
             }
@@ -251,9 +269,9 @@ namespace com.mahonkin.tim.TeaDataService.Services
             {
                 throw new TeaSqlException(ex.Result, ex.Message, ex);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception(ex.Message, ex);
+                throw;
             }
         }
         #endregion Public Methods

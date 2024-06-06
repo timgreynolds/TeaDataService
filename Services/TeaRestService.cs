@@ -10,12 +10,16 @@ using com.mahonkin.tim.TeaDataService.DataModel;
 
 namespace com.mahonkin.tim.TeaDataService.Services
 {
+    /// <summary>
+    /// Implementation of <see cref="IDataService{T}">IDataService</see> providing a REST API. 
+    /// </summary>
     public class TeaRestService : IDataService<RestResponse>
     {
         private static readonly HttpClient _client = new HttpClient();
         private JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
 #if NET8_0_OR_GREATER
+            // Not supported on net7
             PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
             UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
 #endif
@@ -23,9 +27,9 @@ namespace com.mahonkin.tim.TeaDataService.Services
         };
 
         /// <summary>
-        /// Use the <see cref="AddAsync()" /> method if possible.
+        /// Use the <see cref="AddAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse Add(object tea)
+        public RestResponse Add(object? tea)
         {
             return AddAsync(tea).Result;
         }
@@ -40,14 +44,17 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the add operation. The task result contains the
         /// result of the Add operation.
         /// </returns>
-        public async Task<RestResponse> AddAsync(object tea)
+        public async Task<RestResponse> AddAsync(object? tea)
         {
             try
             {
-                // tea = TeaModel.ValidateTea((TeaModel)tea);
+                if (tea is null)
+                {
+                    throw new ArgumentNullException(nameof(tea), "Attempt to add an empty tea to the database.");
+                }
                 ((TeaModel)tea).Validate();
-                HttpResponseMessage response = await _client.PostAsJsonAsync<TeaModel>("api/teas", (TeaModel)tea, _jsonOptions).ConfigureAwait(false);
-                RestResponse content = await response.Content.ReadFromJsonAsync<RestResponse>(_jsonOptions).ConfigureAwait(false) ?? new RestResponse
+                HttpResponseMessage response = await _client.PostAsJsonAsync<TeaModel>("api/teas", (TeaModel)tea, _jsonOptions);
+                RestResponse content = await response.Content.ReadFromJsonAsync<RestResponse>(_jsonOptions) ?? new RestResponse
                 {
                     Success = false,
                     Message = $"{response.StatusCode} {response.ReasonPhrase}"
@@ -65,9 +72,9 @@ namespace com.mahonkin.tim.TeaDataService.Services
         }
 
         /// <summary>
-        /// Use the <see cref="DeleteAsync()"/> method if possible.
+        /// Use the <see cref="DeleteAsync(object)"/> method if possible.
         /// </summary>
-        public object Delete(object tea)
+        public object Delete(object? tea)
         {
             return DeleteAsync(tea).Result;
         }
@@ -83,11 +90,14 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the delete operation. The task result contains
         /// the result of the operation.
         /// </returns>
-        public async Task<object> DeleteAsync(object tea)
+        public async Task<object> DeleteAsync(object? tea)
         {
             try
             {
-                // tea = TeaModel.ValidateTea((TeaModel)tea);
+                if (tea is null)
+                {
+                    throw new ArgumentNullException(nameof(tea), "Attempt to delete an empty tea from the database.");
+                }
                 ((TeaModel)tea).Validate();
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "api/teas")
                 {
@@ -113,9 +123,9 @@ namespace com.mahonkin.tim.TeaDataService.Services
         }
 
         /// <summary>
-        /// Use the <see cref="FindByIdAsync()" /> method if possible.
+        /// Use the <see cref="FindByIdAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse FindById(object id)
+        public RestResponse FindById(object? id)
         {
             return FindByIdAsync(id).Result;
         }
@@ -130,11 +140,15 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the retrieve operation. The task result contains
         /// the tea retrieved or null if not found.
         /// </returns>
-        public async Task<RestResponse> FindByIdAsync(object id)
+        public async Task<RestResponse> FindByIdAsync(object? id)
         {
             try
             {
-                return (await _client.GetFromJsonAsync<RestResponse>($"api/teas/{id}", _jsonOptions).ConfigureAwait(false)) ?? new RestResponse()
+                if (id is null)
+                {
+                    throw new ArgumentNullException(nameof(id), "No ID object provided to find.");
+                }
+                return (await _client.GetFromJsonAsync<RestResponse>($"api/teas/{id}", _jsonOptions)) ?? new RestResponse()
                 {
                     Success = false,
                     Message = $"Could not find tea with ID {id}"
@@ -218,9 +232,9 @@ namespace com.mahonkin.tim.TeaDataService.Services
         }
 
         /// <summary>
-        /// Use the <see cref="UpdateAsync()" /> method if possible.
+        /// Use the <see cref="UpdateAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse Update(object tea)
+        public RestResponse Update(object? tea)
         {
             return UpdateAsync(tea).Result;
         }
@@ -237,10 +251,14 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the update operation. The task result contains
         /// the tea as it was updated.
         /// </returns>
-        public async Task<RestResponse> UpdateAsync(object tea)
+        public async Task<RestResponse> UpdateAsync(object? tea)
         {
             try
             {
+                if (tea is null) 
+                {
+                    throw new ArgumentNullException(nameof(tea), "Attempt to update an empty tea.");
+                }
                 // tea = TeaModel.ValidateTea((TeaModel)tea);
                 ((TeaModel)tea).Validate();
                 HttpResponseMessage response = await _client.PutAsJsonAsync<TeaModel>("api/teas", (TeaModel)tea, _jsonOptions).ConfigureAwait(false);

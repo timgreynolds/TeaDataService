@@ -23,7 +23,7 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// The database-assigned unique ID for this tea record. There should be no reason to set it in code.
         /// </summary>
         [Column("ID"), PrimaryKey, AutoIncrement]
-        [JsonRequired()]
+        [JsonRequired]
         public int Id
         {
             get => _id;
@@ -142,14 +142,14 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static TeaModel ValidateTea(TeaModel tea)
         {
-            tea.Name = tea.Name.Trim();
-            if (string.IsNullOrEmpty(tea.Name) || string.IsNullOrWhiteSpace(tea.Name))
+            tea.Name = tea.Name.Trim(); // Clean up preceeding and trailing whitespace.
+            if (string.IsNullOrWhiteSpace(tea.Name))
             {
                 throw new ArgumentNullException(nameof(tea.Name), "Tea variety must have a name.");
             }
             if (tea.BrewTemp > 212 || tea.BrewTemp <= 32)
             {
-                tea.BrewTemp = 212;
+                tea.BrewTemp = 212; 
             }
             if (tea.SteepTime > TimeSpan.FromMinutes(30) || tea.SteepTime < TimeSpan.FromSeconds(1))
             {
@@ -160,8 +160,15 @@ namespace com.mahonkin.tim.TeaDataService.DataModel
         #endregion Public Methods
     }
 
+
+    /// <summary>
+    /// Potentially helpful extension methods on the TeaModel class.
+    /// </summary>
     public static class TeaModelExtensions
     {
+        /// <summary>
+        /// <inheritdoc cref="TeaModel.ValidateTea(TeaModel)"/>
+        /// </summary>
         public static TeaModel Validate(this TeaModel tea)
         {
             return TeaModel.ValidateTea(tea);
