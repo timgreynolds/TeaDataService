@@ -13,7 +13,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
     /// <summary>
     /// Implementation of <see cref="IDataService{T}">IDataService</see> providing a REST API. 
     /// </summary>
-    public class TeaRestService : IDataService<RestResponse>
+    public class TeaRestService : IDataService<TeaRestResponse>
     {
         private static readonly HttpClient _client = new HttpClient();
         private JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -29,7 +29,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <summary>
         /// Use the <see cref="AddAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse Add(object? tea)
+        public TeaRestResponse Add(object? tea)
         {
             return AddAsync(tea).Result;
         }
@@ -44,7 +44,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the add operation. The task result contains the
         /// result of the Add operation.
         /// </returns>
-        public async Task<RestResponse> AddAsync(object? tea)
+        public async Task<TeaRestResponse> AddAsync(object? tea)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
                 }
                 ((TeaModel)tea).Validate();
                 HttpResponseMessage response = await _client.PostAsJsonAsync<TeaModel>("api/teas", (TeaModel)tea, _jsonOptions);
-                RestResponse content = await response.Content.ReadFromJsonAsync<RestResponse>(_jsonOptions) ?? new RestResponse
+                TeaRestResponse content = await response.Content.ReadFromJsonAsync<TeaRestResponse>(_jsonOptions) ?? new TeaRestResponse
                 {
                     Success = false,
                     Message = $"{response.StatusCode} {response.ReasonPhrase}"
@@ -63,7 +63,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
             }
             catch (Exception ex)
             {
-                return new RestResponse()
+                return new TeaRestResponse()
                 {
                     Success = false,
                     Message = ex.Message
@@ -104,7 +104,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
                     Content = JsonContent.Create<TeaModel>((TeaModel)tea, MediaTypeHeaderValue.Parse("application/json"), _jsonOptions)
                 };
                 HttpResponseMessage response = await _client.SendAsync(request);
-                RestResponse content = await response.Content.ReadFromJsonAsync<RestResponse>(_jsonOptions) ?? new RestResponse
+                TeaRestResponse content = await response.Content.ReadFromJsonAsync<TeaRestResponse>(_jsonOptions) ?? new TeaRestResponse
                 {
                     Success = false,
                     Message = $"{response.StatusCode} {response.ReasonPhrase}"
@@ -114,7 +114,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
             }
             catch (Exception ex)
             {
-                return new RestResponse()
+                return new TeaRestResponse()
                 {
                     Success = false,
                     Message = ex.Message
@@ -125,7 +125,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <summary>
         /// Use the <see cref="FindByIdAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse FindById(object? id)
+        public TeaRestResponse FindById(object? id)
         {
             return FindByIdAsync(id).Result;
         }
@@ -140,7 +140,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the retrieve operation. The task result contains
         /// the tea retrieved or null if not found.
         /// </returns>
-        public async Task<RestResponse> FindByIdAsync(object? id)
+        public async Task<TeaRestResponse> FindByIdAsync(object? id)
         {
             try
             {
@@ -148,7 +148,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
                 {
                     throw new ArgumentNullException(nameof(id), "No ID object provided to find.");
                 }
-                return (await _client.GetFromJsonAsync<RestResponse>($"api/teas/{id}", _jsonOptions)) ?? new RestResponse()
+                return (await _client.GetFromJsonAsync<TeaRestResponse>($"api/teas/{id}", _jsonOptions)) ?? new TeaRestResponse()
                 {
                     Success = false,
                     Message = $"Could not find tea with ID {id}"
@@ -156,7 +156,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
             }
             catch (Exception ex)
             {
-                return new RestResponse()
+                return new TeaRestResponse()
                 {
                     Success = false,
                     Message = ex.Message
@@ -167,7 +167,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <summary>
         /// Use the <see cref="GetAsync()" /> method if possible.
         /// </summary>
-        public RestResponse Get()
+        public TeaRestResponse Get()
         {
             return GetAsync().Result;
         }
@@ -179,11 +179,11 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the get operation. The task result contains a
         /// List of all the teas in the data provider.
         /// </returns>
-        public async Task<RestResponse> GetAsync()
+        public async Task<TeaRestResponse> GetAsync()
         {
             try
             {
-                return (await _client.GetFromJsonAsync<RestResponse>("api/teas", _jsonOptions).ConfigureAwait(false)) ?? new RestResponse()
+                return (await _client.GetFromJsonAsync<TeaRestResponse>("api/teas", _jsonOptions).ConfigureAwait(false)) ?? new TeaRestResponse()
                 {
                     Success = false,
                     Message = "No teas found in the data provider."
@@ -191,7 +191,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
             }
             catch (Exception ex)
             {
-                return new RestResponse()
+                return new TeaRestResponse()
                 {
                     Success = false,
                     Message = ex.Message
@@ -234,7 +234,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// <summary>
         /// Use the <see cref="UpdateAsync(object)" /> method if possible.
         /// </summary>
-        public RestResponse Update(object? tea)
+        public TeaRestResponse Update(object? tea)
         {
             return UpdateAsync(tea).Result;
         }
@@ -251,7 +251,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
         /// A Task representing the update operation. The task result contains
         /// the tea as it was updated.
         /// </returns>
-        public async Task<RestResponse> UpdateAsync(object? tea)
+        public async Task<TeaRestResponse> UpdateAsync(object? tea)
         {
             try
             {
@@ -262,7 +262,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
                 // tea = TeaModel.ValidateTea((TeaModel)tea);
                 ((TeaModel)tea).Validate();
                 HttpResponseMessage response = await _client.PutAsJsonAsync<TeaModel>("api/teas", (TeaModel)tea, _jsonOptions).ConfigureAwait(false);
-                return (await response.Content.ReadFromJsonAsync<RestResponse>(_jsonOptions).ConfigureAwait(false)) ?? new RestResponse()
+                return (await response.Content.ReadFromJsonAsync<TeaRestResponse>(_jsonOptions).ConfigureAwait(false)) ?? new TeaRestResponse()
                 {
                     Success = false,
                     Message = $"{response.StatusCode} {response.ReasonPhrase}"
@@ -270,7 +270,7 @@ namespace com.mahonkin.tim.TeaDataService.Services
             }
             catch (Exception ex)
             {
-                return new RestResponse()
+                return new TeaRestResponse()
                 {
                     Success = false,
                     Message = ex.Message
@@ -280,32 +280,32 @@ namespace com.mahonkin.tim.TeaDataService.Services
 
         /// <summary>
         /// Use the overload <see cref="Get()" /> method that returns 
-        /// a <see cref="RestResponse" />  instead of a List.
+        /// a <see cref="TeaRestResponse" />  instead of a List.
         /// </summary>
         /// <returns>
-        /// A one-element list containing the <see cref="RestResponse" />
+        /// A one-element list containing the <see cref="TeaRestResponse" />
         /// returned from the web service. This RestResponse will contain
         /// a List of zero or more <see cref="TeaModel">teas</see> found in 
         /// the data provider.
         /// </returns>
-        List<RestResponse> IDataService<RestResponse>.Get()
+        List<TeaRestResponse> IDataService<TeaRestResponse>.Get()
         {
-            return new List<RestResponse>() { Get() };
+            return new List<TeaRestResponse>() { Get() };
         }
 
         /// <summary>
         /// Use the overload <see cref="GetAsync()" /> method that returns 
-        /// a <see cref="RestResponse" />  instead of a List.
+        /// a <see cref="TeaRestResponse" />  instead of a List.
         /// </summary>
         /// <returns>
         /// A Task respresenting the Get operation. The result of the Task 
-        /// will contain a one-element list of <see cref="RestResponse" />.
+        /// will contain a one-element list of <see cref="TeaRestResponse" />.
         /// This RestResponse will contain a List of zero or more 
         /// <see cref="TeaModel">teas</see> found in the data provider.
         /// </returns>
-        async Task<List<RestResponse>> IDataService<RestResponse>.GetAsync()
+        async Task<List<TeaRestResponse>> IDataService<TeaRestResponse>.GetAsync()
         {
-            return new List<RestResponse>() { await GetAsync() };
+            return new List<TeaRestResponse>() { await GetAsync() };
         }
     }
 }
