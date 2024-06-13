@@ -1,28 +1,80 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Remove="Models\" />
-    <None Remove="Services\" />
-    <None Remove=".gitignore" />
-    <None Remove="Exceptions\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Models\" />
-    <Folder Include="Services\" />
-    <Folder Include="Exceptions\" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
-    <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.8" />
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.8" />
-    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.8" />
-    <PackageReference Include="SQLitePCLRaw.core" Version="2.1.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-  </ItemGroup>
+    <Import Project="$(MSBuildProjectDirectory)\Version.props" />
+    <PropertyGroup>
+        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+        <OutputType>Library</OutputType>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>Mahonkin.TeaDataService</PackageId>
+        <Title>Tea Timer Data Service</Title>
+        <Description>            
+            Service that provides access to an underlying datastore of teas. Ultimately the datastore is a SQLite DB.
+            Services provided use SQLite directly as well as a REST service.
+        </Description>
+        <Authors>Timothy Reynolds</Authors>
+        <Company />
+        <Copyright>Copyright 2023-2024 Timothy Reynolds</Copyright>
+        <PackageTags />
+        <PackageProjectUrl>https://github.com/timgreynolds/TeaDataService</PackageProjectUrl>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>git@github.com:timgreynolds/TeaDataService.git</RepositoryUrl>
+        <RepositoryBranch>main</RepositoryBranch>
+        <PackageReadmeFile />
+        <PackageIcon />
+        <PackageReleaseNotes />
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <IncludeSymbols Condition=" '$(Configuration)' == 'Debug' ">true</IncludeSymbols>
+        <EmbedAllSources Condition=" '$(Configuration)' == 'Debug' ">true</EmbedAllSources>
+        <DebugType Condition=" '$(Configuration)' == 'Debug' ">Embedded</DebugType>
+        <MajorNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([System.Version]::Parse($(LastReleaseVersion)).Major)</MajorNumber>
+        <MinorNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([System.Version]::Parse($(LastReleaseVersion)).Minor)</MinorNumber>
+        <BuildNumber Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$([MSBuild]::Add($([System.Version]::Parse($(LastReleaseVersion)).Build), 1))</BuildNumber>
+        <VersionPrefix Condition=" '$(Configuration)' == 'Release' And 'LastReleaseVersion' != '' ">$(MajorNumber).$(MinorNumber).$(BuildNumber)</VersionPrefix>
+        <VersionSuffix Condition=" '$(Configuration)' == 'Release' " />
+        <VersionPrefix Condition=" '$(Configuration)' == 'Debug' And 'LastReleaseVersion' != '' ">$(LastReleaseVersion)</VersionPrefix>
+        <VersionSuffix Condition=" '$(Configuration)' == 'Debug' And 'LastReleaseDateTime' != '' ">$([System.Convert]::ToInt32($([System.TimeSpan]::FromTicks($([MsBuild]::Subtract($([System.DateTime]::Now.Ticks), $([System.DateTime]::Parse($(LastReleaseDateTime)).Ticks)))).TotalMinutes)))</VersionSuffix>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Remove="Models\" />
+        <None Remove="Services\" />
+        <None Remove=".gitignore" />
+        <None Remove="Exceptions\" />
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Models\" />
+        <Folder Include="Services\" />
+        <Folder Include="Exceptions\" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="sqlite-net-pcl"
+                          Version="1.9.172" />
+        <PackageReference Include="SQLitePCLRaw.bundle_green"
+                          Version="2.1.8" />
+        <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3"
+                          Version="2.1.8" />
+        <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3"
+                          Version="2.1.8" />
+        <PackageReference Include="SQLitePCLRaw.core"
+                          Version="2.1.8" />
+    </ItemGroup>
+    <Target Name="SaveLastReleaseVersion"
+            AfterTargets="Build"
+            Condition=" '$(Configuration)' == 'Release' And '$(VersionPrefix)' != '' ">
+        <PropertyGroup>
+            <LinesToWrite>                
+                &lt;Project&gt;
+                &lt;PropertyGroup&gt;
+                &lt;LastReleaseVersion&gt;$(VersionPrefix)&lt;/LastReleaseVersion&gt;
+                &lt;LastReleaseDateTime&gt;$([System.DateTime]::Now.ToString(yyyy/MM/dd HH:mm:00))&lt;/LastReleaseDateTime&gt;
+                &lt;/PropertyGroup&gt;
+                &lt;/Project&gt;
+            </LinesToWrite>
+        </PropertyGroup>
+        <WriteLinesToFile File="$(MSBuildProjectDirectory)\Version.props"
+                          Lines="$(LinesToWrite)"
+                          Overwrite="true"
+                          Encoding="UTF-8" />
+    </Target>
 </Project>
